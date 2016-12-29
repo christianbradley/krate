@@ -3,7 +3,7 @@
 ![npm license](https://img.shields.io/npm/l/krate.svg)
 ![dependencies](https://david-dm.org/christianbradley/krate.png)
 
-Flexible async dependency injection container for node.js and the browser.
+Flexible async IOC dependency injection container for javascript
 
 * [installation](#installation)
 * [quick start](#quick-start)
