@@ -4,10 +4,17 @@
 ![npm license](https://img.shields.io/npm/l/krate.svg)
 ![dependencies](https://david-dm.org/christianbradley/krate.png)
 
-Flexible async IOC dependency injection container for javascript
+
+Flexible async [IOC][ioc] for javascript utilizing the [dependency injection][di] container pattern.
 
 * [installation](#installation)
-* [quick start](#quick-start)
+* [overview](#overview)
+  * [container](#container)
+  * [components](#components)
+  * [factories](#factories)
+  * [dependencies](#dependencies)
+  * [overrides](#overrides)
+* [api](#api)
 
 ## installation
 
@@ -17,90 +24,153 @@ Install using [npm](http://npmjs.org)
 npm install krate
 ```
 
-## quick start
+## overview
 
-#### configure krate.js
+Using krate enables you to split your app up into multiple async or synchronous components, then define and resolve them using a dependency injection container.
 
-All krate.js dependencies are injectable via the core `configure` function.
-This allows you to use your own Promise library, for example.
+Any component definition can be overridden before it is resolved, allowing you to replace dependencies, or redefine which dependencies to use for different platforms and environments.
 
-```js
-const Krate = require('krate').configure({
-  DEFAULT_TIMEOUT: 10000,
-  Promise: require('bluebird')
-})
-```
+Krate's container makes development of any sized project cleaner, faster, and easier to reason about. We think it's pretty sweet.
 
+### container
 
-#### create a container
+A krate container allows you to define, resolve, and override components. You should generally only use one container per app.
 
-Your container will be used to define and resolve your app's components.
+Components are defined using a string `key` and a definition consisting of a `factory` and `depends` specification (dependencies). A component's key must not contain spaces, but may use other special characters.
 
-```js
-const container = new Krate.Container()
-```
-
-#### define some components
-
-Each component is defined using a `factory` that can be synchronous or asynchronous.
-Synchronous factories can return a value or a promise, while async factories will be passed
-a hybrid node.js-style callback/deferred resolver.
+As a general rule, you should never reference the container from any component, or define a component that resolves to the container itself.
 
 ```js
 container.define({
-  foo: { factory: () => 'foo' },
-  bar: { factory: () => Promise.resolve('bar') },
-  baz: { factory: (done) => done(null, 'baz') },
-  qux: { factory: (deferred) => deferred.resolve('qux') }
-})
-```
-
-#### define components with dependencies
-
-In addition to a factory, each component may define their `depends`. These will be resolved to an object and injected as the first parameter of the factory. Basic depends can be defined as strings (with "as" aliases), arrays of strings, or objects with keys representing aliases, and values representing dependency names.
-
-```js
-container.define('combos/foofoo', {
-  depends: 'foo as val',
-  factory: ({ val }) => val + val
-})
-
-container.define('combos/foobar', {
-  depends: ['foo', 'bar as b'],
-  factory: ({ foo, bar }, deferred) => deferred.resolve(foo + bar)
-})
-
-container.define('combos/barbaz', {
-  depends: { b: 'bar', baz: true },
-  factory: ({ b, baz }, done) => done(null, b + baz)
-})
-```
-
-#### define complex dependencies with a reducer
-
-For more complex scenarios, you can use a function to reduce the array of all defined component keys into an array of strings to be resolved as your component's `depends`.
-
-For example, we can use a reducer to build an index of all components starting with "combos/".
-
-```js
-container.define('combos', {
-  factory: (values) => values,
-  depends: (depends, key, i) => {
-    if(key.indexOf("combos/") !== 0) return depends
-    return depends.concat(`${key} as ${key.slice(7)}`)
+  "test/foo": { factory: function() { return "foo" } },
+  "test/bar": { factory: function() { return "bar" } },
+  "test/baz": { factory: function() { return "baz" } },
+  foobar: {
+    depends: ['test/foo as foo', 'test/bar as bar'],
+    factory: function({ foo, bar }) { return foo + bar }
   }
 })
-```
 
-#### resolve components
+container.override('foobar', {
+  depends: ['test/foo as foo', 'test/baz as bar']
+})
 
-You can resolve your components using the same format you used for defining
-your component's `depends`. The `resolve` method returns a promised object
-with each of your resolved components, keyed by their name or their provided alias.
-
-```js
-container.resolve(['combos as c', 'foo']).then(({ c, foo }) => {
-  console.log(c) // => { foobar: "foobar", barbaz: "barbaz" }
-  console.log(f) // => "foo"
+container.resolve('foobar as f').then(function({ f }) {
+  console.log(f) // #=> "foofoo"
 })
 ```
+
+### components
+
+Components are identified by a string `key`, and defined by their `factory` method and optional `depends` (dependencies). A container is responsible for resolving component depends and injecting them into the factory method.
+
+You can define components in individual files, exporting a `factory` and `depends`. This enables quick and easy modularization of your app's async components.
+
+```js
+container.define({
+  DbLib: { factory: function() { return require('my-db-lib') } },
+  env: { factory: function() { return process.env } },
+  db: require('./components/db')
+})
+
+container.resolve(['db']).then(function({ db }) {
+  // connected to db... do stuff with it
+})
+
+// db.js
+exports.depends = ['DbLib', 'env']
+exports.factory = function({ DbLib, env }, done) {
+  DbLib.connect(env.DB_CONNSTR, done)
+}
+```
+
+### factories
+
+A component factory is a function used to resolve the value for a given component, whether it be synchronous or asynchronous. If dependencies have been defined, they will be reduced to an object and injected as the first parameter to your factory.
+
+A factory can return any value or promise, or you may specify an additional parameter and your factory will receive a callback that doubles as a deferred object.
+
+```js
+const example_factories = {
+  value: function() { return "foo" },
+  promise: function() { return Promise.resolve("bar") },
+  callback: function(done) { done(null, "baz") },
+  deferred: function(deferred) { deferred.resolve("qux") },
+  has_depends: function({ value }, done) { done(null, value) }
+}
+```
+
+### dependencies
+
+Component dependencies can be defined as a string, array of strings, or object. Each must reference an existing component key, but may pass an optional alias to use as the parameter name when injecting into the factory.
+
+Undefined or circular dependencies (foo < bar < foo) will result in a rejected promise when attempting to resolve the component.
+
+```js
+const example_depends = {
+  string: 'foo',
+  string_with_alias: 'foo as f',
+  strings: ['foo', 'bar as b'],
+  object: {
+    foo: true,
+    b: 'bar'
+  }
+}
+```
+
+### overrides
+
+## example app
+
+Here's a quick, contrived example JSON api that uses a krate container. The database connection and express app components are placed in separate files, then defined on the container via a `require` statement.
+
+The container is then used to resolve the `app` component, inject the async `db` when it is ready. After the `app` component is resolved, we can start listening.
+
+```js
+// app.js
+const Promise = require('bluebird')
+const Krate = require('krate').configure({ Promise })
+const container = new Krate.Container()
+const value = (val) => {
+  return {
+    depends: null,
+    factory: () => val
+  }
+}
+
+container.define({
+  DbLib: value(require('my-db-lib')),
+  Express: value(require('express')),
+  env: value(process.env),
+  db: require('./components/db'),
+  app: require('./components/app')
+})
+
+container.resolve('app').then((app) => {
+  app.listen()
+})
+
+// components/db.js
+exports.depends = ['DbLib', 'env']
+exports.factory = function({ DbLib, env }, done) {
+  DbLib.connect(env.DB_CONNECT_STR, done)
+}
+
+// components/app.js
+exports.depends = ['Express', 'db']
+exports.factory = function({ Express, db }, done) {
+  const app = Express()
+
+  app.get('/posts/:id', (request, response, next) => {
+    db.read("posts", request.params.id, (error, post) => {
+      if(error != null) return next(error)
+      response.json(post)
+    })
+  })
+
+  return app
+}
+```
+
+[ioc]: http://wikipedia.org/wiki/inversion_of_control
+[di]: http://wikipedia.org/wiki/dependency_injection
