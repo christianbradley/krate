@@ -1,17 +1,26 @@
 {
   "name": "krate",
-  "version": "0.1.0",
-  "description": "",
+  "version": "0.2.1",
+  "description": "Flexible async inverson of control dependency injection container for javascript.",
+  "keywords": "inversion, control, dependency, injection, container, async, promise", 
+  "author": "Christian Bradley <christian.bradley@bocodigital.com> (https://github.com/christianbradley)",
+  "homepage": "https://github.com/christianbradley/krate",
+  "license": "MIT",
   "main": "index.js",
   "scripts": {
     "test": "./node_modules/.bin/mocha --compilers coffee:coffee-script/register",
     "build": "rm -rf build && mkdir build && ./node_modules/.bin/coffee -cmb -o build source"
   },
-  "author": "Christian Bradley <christianbradley@gmail.com> (https://github.com/christianbradley)",
-  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/christianbradley/krate/issues",
+    "email": "christian.bradley@bocodigital.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/christianbradley/krate.git"
+  },
   "devDependencies": {
     "coffee-script": "^1.12.2",
-    "mocha": "^3.2.0",
-    "source-map-support": "^0.4.8"
+    "mocha": "^3.2.0"
   }
 }

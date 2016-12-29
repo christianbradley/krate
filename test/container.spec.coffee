@@ -1,5 +1,3 @@
-require('source-map-support').install()
-
 { expect } = require 'mocha'
 assert = require 'assert'
 Krate = require('../source').configure()
