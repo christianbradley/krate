@@ -1,0 +1,17 @@
+{
+  "name": "krate",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "./node_modules/.bin/mocha --compilers coffee:coffee-script/register",
+    "build": "rm -rf build && mkdir build && ./node_modules/.bin/coffee -cmb -o build source"
+  },
+  "author": "Christian Bradley <christianbradley@gmail.com> (https://github.com/christianbradley)",
+  "license": "MIT",
+  "devDependencies": {
+    "coffee-script": "^1.12.2",
+    "mocha": "^3.2.0",
+    "source-map-support": "^0.4.8"
+  }
+}

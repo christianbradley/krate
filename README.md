@@ -1,11 +1,12 @@
-
 # ![krate.js logo](http://i.imgur.com/krjQPnU.png)
+![npm version](https://img.shields.io/npm/v/krate.svg)
+![npm license](https://img.shields.io/npm/l/krate.svg)
+![dependencies](https://david-dm.org/christianbradley/krate.png)
 
 Flexible async dependency injection container for node.js and the browser.
 
 * [installation](#installation)
 * [quick start](#quick-start)
-* [api](#api)
 
 ## installation
 
@@ -102,11 +103,3 @@ container.resolve(['combos as c', 'foo']).then(({ c, foo }) => {
   console.log(f) // => "foo"
 })
 ```
-
-## api
-
-* `configure()`
-* `new Container()`
-* `container.define()`
-* `container.resolve()`
-* `container.override()`
