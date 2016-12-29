@@ -1,5 +1,5 @@
 
-# ![krate.js logo](http://i.imgur.com/wjDDX95.png)
+# ![krate.js logo](http://i.imgur.com/krjQPnU.png)
 
 Flexible async dependency injection container for node.js and the browser.
 
